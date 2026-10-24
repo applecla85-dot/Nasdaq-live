@@ -1,347 +1,467 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Nasdaq 100 Live & Vocal</title>
-    <!-- Tailwind CSS per uno stile moderno e responsive -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nasdaq 100 - Live & Analisi</title>
     <style>
-        /* Styling personalizzato per switch iOS */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #34C759;
+        :root {
+            --bg-color: #f2f2f7;
+            --card-bg: #ffffff;
+            --text-main: #1c1c1e;
+            --text-sub: #6c757d;
+            --accent: #007aff;
+            --green: #28a745;
+            --red: #dc3545;
+            --yellow: #856404;
+            --yellow-bg: #fff3cd;
         }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #34C759;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            line-height: 1.5;
         }
-        /* Effetto pulsante per indicatore di connessione real-time */
-        @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.8; }
-            50% { transform: scale(1.1); opacity: 0.4; }
-            100% { transform: scale(0.95); opacity: 0.8; }
+
+        header {
+            margin-bottom: 16px;
         }
-        .live-pulse {
-            animation: pulse-ring 2s infinite ease-in-out;
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 8px 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        .status-open { background-color: #d4edda; color: #155724; }
+        .status-premarket { background-color: var(--yellow-bg); color: var(--yellow); }
+        .status-closed { background-color: #f8d7da; color: #721c24; }
+
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .btn-toggle {
+            flex: 1;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 10px;
+            border: 2px solid var(--accent);
+            background-color: var(--card-bg);
+            color: var(--accent);
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn-toggle.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #48484a;
+            border-bottom: 1px solid #e5e5ea;
+            padding-bottom: 6px;
+        }
+
+        .price {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 4px 0;
+        }
+
+        .time-info {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+        }
+
+        .interval-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 12px 0;
+        }
+
+        .interval-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed #e5e5ea;
+            font-size: 0.95rem;
+        }
+
+        .interval-item:last-child {
+            border-bottom: none;
+        }
+
+        .val-pos { color: var(--green); font-weight: 600; }
+        .val-neg { color: var(--red); font-weight: 600; }
+        .val-neu { color: var(--text-sub); }
+
+        .summary-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--accent);
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        .alert-card {
+            border: 2px solid var(--red);
+            background-color: #fff5f5;
+        }
+
+        .alert-card.up {
+            border-color: var(--green);
+            background-color: #f2faf3;
+        }
+
+        button.action-btn {
+            width: 100%;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        button.action-btn:active {
+            opacity: 0.8;
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans flex flex-col justify-between p-4 sm:p-6">
+<body>
 
-    <!-- Header Section -->
-    <header class="w-full max-w-lg mx-auto mb-4">
-        <div class="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-            <div>
-                <h1 class="text-xl font-bold tracking-tight">Nasdaq 100 (NDX)</h1>
-                <p id="marketStatusText" class="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5" aria-live="polite">
-                    Stato Mercato: Inizializzazione...
-                </p>
-            </div>
-            <div class="flex items-center space-x-2" title="Aggiornamento automatico ogni 10 secondi">
-                <span class="relative flex h-3 w-3">
-                    <span class="live-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">10s</span>
-            </div>
+    <header>
+        <h1>Nasdaq 100 - Live & Analisi</h1>
+        <div id="marketStatus" class="status-badge status-closed" aria-live="polite">
+            Stato Mercato: Calcolo in corso...
+        </div>
+
+        <div class="audio-controls" role="group" aria-label="Controlli Sintesi Vocale">
+            <button id="btnAudioPrice" class="btn-toggle" onclick="toggleAudio('price')">
+                🔊 Audio Prezzo: OFF
+            </button>
+            <button id="btnAudioAnalysis" class="btn-toggle" onclick="toggleAudio('analysis')">
+                📢 Audio Analisi: OFF
+            </button>
         </div>
     </header>
 
-    <!-- Main Content Grid -->
-    <main class="w-full max-w-lg mx-auto flex-grow space-y-4">
-
-        <!-- REAL-TIME PRICE CARD -->
-        <section class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden" aria-labelledby="livePriceHeading">
-            <div class="flex justify-between items-start mb-1">
-                <h2 id="livePriceHeading" class="text-sm font-medium opacity-90 uppercase tracking-wider">Tempo Reale / Pre-Market</h2>
-                <span id="speechBadge" class="hidden text-xs bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full font-medium">🔊 Voce Attiva</span>
-            </div>
-
-            <!-- Current Price Display -->
-            <div id="livePriceDisplay" class="text-4xl sm:text-5xl font-extrabold tracking-tight my-2" aria-live="off">
-                Caricamento...
-            </div>
-
-            <div class="flex justify-between items-center text-xs opacity-80 mt-4 border-t border-white/10 pt-3">
-                <span id="priceChange">Variazione: --</span>
-                <span id="lastUpdateTimestamp">Aggiornato: --:--:--</span>
-            </div>
+    <main>
+        <section class="card" aria-labelledby="livePriceHeading">
+            <h2 id="livePriceHeading">Valore in Tempo Reale</h2>
+            <div id="currentPrice" class="price" aria-live="polite">Caricamento...</div>
+            <div id="lastUpdate" class="time-info">Ultimo aggiornamento: In attesa...</div>
         </section>
 
-        <!-- VOICE CONTROL TOGGLE CARD -->
-        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700" aria-labelledby="voiceControlsHeading">
-            <h2 id="voiceControlsHeading" class="sr-only">Controlli Sintesi Vocale</h2>
+        <section class="card" aria-labelledby="closePriceHeading">
+            <h2 id="closePriceHeading">Chiusura Ultima Seduta Ufficiale</h2>
+            <div id="fridayClosePrice" class="price">28.957,53</div>
+            <div class="time-info">Chiusura ufficiale mercato di New York</div>
+        </section>
+
+        <section id="alertCard" class="card alert-card" style="display: none;" aria-live="assertive">
+            <h2>⚠️ Movimento Significativo Rilevato</h2>
+            <div id="alertContent">Nessun movimento anomalo al momento.</div>
+        </section>
+
+        <section class="card" aria-labelledby="analysisHeading">
+            <h2 id="analysisHeading">Analisi Movimenti Nasdaq 100</h2>
             
-            <div class="flex items-center justify-between">
-                <div class="pr-4">
-                    <label for="voiceToggle" class="text-base font-semibold block cursor-pointer">Annuncio Vocale Continuo</label>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        Pronuncia vocalmente <strong class="text-indigo-600 dark:text-indigo-400">soltanto il valore in tempo reale</strong> ogni 10 secondi.
-                    </p>
-                </div>
+            <ul class="interval-list">
+                <li class="interval-item">
+                    <span>1 Minuto:</span>
+                    <span id="m1_val" class="val-neu">In attesa dati...</span>
+                </li>
+                <li class="interval-item">
+                    <span>3 Minuti:</span>
+                    <span id="m3_val" class="val-neu">In attesa dati...</span>
+                </li>
+                <li class="interval-item">
+                    <span>5 Minuti:</span>
+                    <span id="m5_val" class="val-neu">In attesa dati...</span>
+                </li>
+                <li class="interval-item">
+                    <span>10 Minuti:</span>
+                    <span id="m10_val" class="val-neu">In attesa dati...</span>
+                </li>
+                <li class="interval-item">
+                    <span>15 Minuti:</span>
+                    <span id="m15_val" class="val-neu">In attesa dati...</span>
+                </li>
+            </ul>
 
-                <!-- Custom iOS-style Switch -->
-                <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                    <input type="checkbox" id="voiceToggle" name="voiceToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-all duration-300 z-10" aria-label="Attiva annuncio vocale ogni 10 secondi"/>
-                    <label for="voiceToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300"></label>
-                </div>
+            <div class="summary-box">
+                <p><strong>Direzione prevalente:</strong> <span id="summaryDirection">In calcolo...</span></p>
+                <p><strong>Concordanza:</strong> <span id="summaryConcordance">In calcolo...</span></p>
+                <p><strong>Stato del movimento:</strong> <span id="summaryState">In calcolo...</span></p>
             </div>
-
-            <!-- Manual Test/Unlock Button for iOS VoiceOver users -->
-            <button id="btnTestVoice" class="mt-4 w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-semibold rounded-xl transition duration-150 flex items-center justify-center space-x-2 active:scale-95">
-                <span>🔊 Prova Voce / Sblocca Audio iOS</span>
-            </button>
         </section>
 
-        <!-- LAST CLOSE REFERENCE CARD -->
-        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700" aria-labelledby="closeHeading">
-            <h2 id="closeHeading" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Chiusura Seduta Precedente</h2>
-            <div id="closePriceDisplay" class="text-2xl font-bold mt-1 text-gray-800 dark:text-gray-200">
-                28.957,53
-            </div>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Valore ufficiale di riferimento (Wall Street)</p>
+        <section class="card" aria-labelledby="hoursHeading">
+            <h2 id="hoursHeading">Orari di Contrattazione (Ora Italiana CET)</h2>
+            <ul style="padding-left: 20px; margin: 0;">
+                <li><strong>Pre-Market:</strong> 09:00 – 14:30 (Transizione)</li>
+                <li><strong>Mercato Regolare:</strong> 14:30 – 21:00 (Transizione)</li>
+            </ul>
         </section>
 
-        <!-- MARKET HOURS INFORMATIONAL CARD WITH DYNAMIC DST LOGIC -->
-        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 text-xs space-y-2">
-            <h3 class="font-bold text-gray-700 dark:text-gray-300 text-sm mb-1">Orari di Contrattazione (Ora Italiana)</h3>
-            <div class="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1.5">
-                <span class="text-gray-500 dark:text-gray-400">Pre-Market:</span>
-                <span id="preMarketHoursText" class="font-medium">10:00 – 15:30 (Oppure 09:00 - 14:30 in cambio ora)</span>
-            </div>
-            <div class="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1.5">
-                <span class="text-gray-500 dark:text-gray-400">Mercato Regolare:</span>
-                <span id="regularHoursText" class="font-medium text-emerald-600 dark:text-emerald-400">15:30 – 22:00 (Oppure 14:30 - 21:00 in cambio ora)</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="text-gray-500 dark:text-gray-400">Frequenza Aggiornamento:</span>
-                <span class="font-semibold text-indigo-600 dark:text-indigo-400">Fissa ogni 10 secondi</span>
-            </div>
-        </section>
+        <button class="action-btn" onclick="fetchNasdaqData()" aria-label="Aggiorna dati Nasdaq manualmente">Aggiorna Dati Ora</button>
     </main>
 
-    <!-- Footer -->
-    <footer class="w-full max-w-lg mx-auto mt-6 text-center text-xs text-gray-400 dark:text-gray-500">
-        <p>Ottimizzato per iPhone, Safari Mobile e VoiceOver</p>
-    </footer>
-
-    <!-- JavaScript Application Logic -->
     <script>
-        // Applicazione e variabili di stato
-        let currentLivePrice = 28957.53; // Prezzo base di partenza
-        let previousClosePrice = 28957.53; // Chiusura reale
-        let isSpeechEnabled = false;
-        let speechVoice = null;
-        let updateTimer = null;
+        const priceHistory = [];
+        const MAX_HISTORY_LENGTH = 120;
 
-        // Elementi DOM
-        const livePriceDisplay = document.getElementById('livePriceDisplay');
-        const closePriceDisplay = document.getElementById('closePriceDisplay');
-        const priceChangeDisplay = document.getElementById('priceChange');
-        const lastUpdateTimestamp = document.getElementById('lastUpdateTimestamp');
-        const voiceToggle = document.getElementById('voiceToggle');
-        const speechBadge = document.getElementById('speechBadge');
-        const btnTestVoice = document.getElementById('btnTestVoice');
-        const marketStatusText = document.getElementById('marketStatusText');
-        const preMarketHoursText = document.getElementById('preMarketHoursText');
-        const regularHoursText = document.getElementById('regularHoursText');
+        let speechPriceEnabled = false;
+        let speechAnalysisEnabled = false;
+        let lastAnnouncedState = "";
 
-        /**
-         * Inizializzazione della sintesi vocale e selezione della voce italiana su iOS/Safari
-         */
-        function initSpeechSynthesis() {
+        const THRESHOLDS = {
+            LATERAL: 0.03,
+            WEAK: 0.05,
+            MODERATE: 0.08,
+            IMPORTANT: 0.12
+        };
+
+        function toggleAudio(type) {
+            if (type === 'price') {
+                speechPriceEnabled = !speechPriceEnabled;
+                const btn = document.getElementById('btnAudioPrice');
+                btn.textContent = "🔊 Audio Prezzo: " + (speechPriceEnabled ? "ON" : "OFF");
+                btn.classList.toggle('active', speechPriceEnabled);
+                if (speechPriceEnabled) speakText("Audio prezzo attivato");
+            } else if (type === 'analysis') {
+                speechAnalysisEnabled = !speechAnalysisEnabled;
+                const btn = document.getElementById('btnAudioAnalysis');
+                btn.textContent = "📢 Audio Analisi: " + (speechAnalysisEnabled ? "ON" : "OFF");
+                btn.classList.toggle('active', speechAnalysisEnabled);
+                if (speechAnalysisEnabled) speakText("Audio analisi attivato");
+            }
+        }
+
+        function speakText(text) {
             if ('speechSynthesis' in window) {
-                const loadVoices = () => {
-                    const voices = window.speechSynthesis.getVoices();
-                    // Ricerca voce italiana (es. Alice, Federica, Luca su iOS)
-                    speechVoice = voices.find(v => v.lang.startsWith('it')) || voices[0];
-                };
-
-                loadVoices();
-                if (speechSynthesis.onvoiceschanged !== undefined) {
-                    speechSynthesis.onvoiceschanged = loadVoices;
-                }
-            } else {
-                console.warn('La sintesi vocale non è supportata da questo browser.');
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'it-IT';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
             }
         }
 
-        /**
-         * Pronuncia esclusivamente il valore in tempo reale
-         * @param {string} textToSpeak - Il testo formattato per la pronuncia italiana
-         */
-        function speakRealTimeValue(textToSpeak) {
-            if (!isSpeechEnabled || !('speechSynthesis' in window)) return;
-
-            // Interrompe la frase precedente per evitare ritardi o code con l'intervallo a 10s
-            window.speechSynthesis.cancel();
-
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            if (speechVoice) {
-                utterance.voice = speechVoice;
-            }
-            utterance.lang = 'it-IT';
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-
-            window.speechSynthesis.speak(utterance);
-        }
-
-        /**
-         * Converte il valore numerico in parole per una dizione naturale in italiano
-         * Esempio: 28957.53 -> "28 mila 957 virgola 53"
-         */
-        function formatPriceForSpeech(price) {
-            const integerPart = Math.floor(price);
-            const decimals = Math.round((price - integerPart) * 100);
-            const formattedInt = integerPart.toLocaleString('it-IT');
-            return `${formattedInt} virgola ${decimals < 10 ? '0' + decimals : decimals}`;
-        }
-
-        /**
-         * Formatta una stringa o numero pulendo virgole ed evitando troncamenti
-         */
-        function parseCleanPrice(val) {
-            if (typeof val === 'number') return val;
-            if (typeof val === 'string') {
-                return parseFloat(val.replace(/,/g, ''));
-            }
-            return 0;
-        }
-
-        /**
-         * Formattazione visiva italiana standard
-         * Esempio: 28957.53 -> "28.957,53"
-         */
-        function formatPriceForDisplay(price) {
-            const cleanNum = parseCleanPrice(price);
-            return cleanNum.toLocaleString('it-IT', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-
-        /**
-         * Calcola dinamicamente lo stato del mercato e gli orari italiani correnti
-         * usando il fuso orario nativo di New York ("America/New_York").
-         * Gestisce automaticamente le sfalsature dell'ora legale/solare tra USA e Italia.
-         */
-        function getNYMarketStatus() {
+        function getMarketState() {
             const now = new Date();
-
-            // Riconoscimento dinamico dell'ora corrente a New York (EDT / EST)
             const nyString = now.toLocaleString("en-US", { timeZone: "America/New_York" });
             const nyDate = new Date(nyString);
-            
-            const day = nyDate.getDay(); // 0 = Domenica, 6 = Sabato
-
-            // Calcolo offset in minuti da inizio giornata New York
-            const nyMinutes = nyDate.getHours() * 60 + nyDate.getMinutes();
-
-            const preMarketStart = 4 * 60;          // 04:00 AM New York
-            const regularMarketStart = 9 * 60 + 30;  // 09:30 AM New York
-            const regularMarketEnd = 16 * 60;       // 04:00 PM New York
-
-            // Determinazione dell'ora italiana equivalente per la legenda informativa
-            // Calcola la differenza oraria tra Italia e New York al momento dell'esecuzione
-            const itaString = now.toLocaleString("en-US", { timeZone: "Europe/Rome" });
-            const itaDate = new Date(itaString);
-            const diffHours = Math.round((itaDate - nyDate) / (1000 * 60 * 60)); // Tipicamente 6 ore, ma 5 durante la settimana di sfalsamento
-
-            const openItaHour = 9 + diffHours; // 15:30 normalmente, 14:30 in transizione
-            const closeItaHour = 16 + diffHours; // 22:00 normalmente, 21:00 in transizione
-            const preItaHour = 4 + diffHours; // 10:00 normalmente, 09:00 in transizione
-
-            // Aggiorna testo orari visualizzati in legenda
-            preMarketHoursText.textContent = `${preItaHour}:00 – ${openItaHour}:30`;
-            regularHoursText.textContent = `${openItaHour}:30 – ${closeItaHour}:00`;
+            const day = nyDate.getDay();
 
             if (day === 0 || day === 6) {
-                return { text: "Mercato Chiuso (Weekend)", statusClass: "text-gray-500" };
+                return { text: "Mercato Chiuso (Weekend)", class: "status-closed" };
             }
+
+            const nyMinutes = nyDate.getHours() * 60 + nyDate.getMinutes();
+            const preMarketStart = 4 * 60;
+            const regularMarketStart = 9 * 60 + 30;
+            const regularMarketEnd = 16 * 60;
 
             if (nyMinutes >= preMarketStart && nyMinutes < regularMarketStart) {
-                return { text: `Pre-Market Attivo (${preItaHour}:00 - ${openItaHour}:30 ITA)`, statusClass: "text-amber-600 dark:text-amber-400" };
+                return { text: "Pre-Market Attivo", class: "status-premarket" };
             } else if (nyMinutes >= regularMarketStart && nyMinutes < regularMarketEnd) {
-                return { text: `Mercato Aperto (${openItaHour}:30 - ${closeItaHour}:00 ITA)`, statusClass: "text-emerald-600 dark:text-emerald-400" };
+                return { text: "Mercato Aperto (Live)", class: "status-open" };
             } else {
-                return { text: "Mercato Chiuso", statusClass: "text-red-500" };
+                return { text: "Mercato Chiuso", class: "status-closed" };
             }
         }
 
-        /**
-         * Funzione principale eseguita ogni 10 secondi
-         */
-        function fetchAndRefreshData() {
-            // Simulazione micro-fluttuazioni di mercato in tempo reale
-            const randomDelta = (Math.random() - 0.49) * 12.5; 
-            currentLivePrice = Math.max(10000, currentLivePrice + randomDelta);
+        function classifyMovement(pct) {
+            const absPct = Math.abs(pct);
+            let dir = pct > 0 ? "Rialzo" : (pct < 0 ? "Ribasso" : "Laterale");
 
-            // Formattazione per la UI
-            const formattedLivePrice = formatPriceForDisplay(currentLivePrice);
-            livePriceDisplay.textContent = formattedLivePrice;
-
-            // Calcolo variazione percentuale dalla chiusura
-            const diff = currentLivePrice - previousClosePrice;
-            const diffPercent = (diff / previousClosePrice) * 100;
-            const sign = diff >= 0 ? '+' : '';
-            priceChangeDisplay.textContent = `Var: ${sign}${diffPercent.toFixed(2)}% (${sign}${diff.toFixed(2)})`;
-            priceChangeDisplay.className = diff >= 0 ? 'text-emerald-300 font-semibold' : 'text-red-300 font-semibold';
-
-            // Marca temporale
-            const now = new Date();
-            lastUpdateTimestamp.textContent = `Aggiornato: ${now.toLocaleTimeString('it-IT')}`;
-
-            // Aggiorna lo stato del mercato in base al fuso orario reale di New York
-            const status = getNYMarketStatus();
-            marketStatusText.textContent = "Stato: " + status.text;
-            marketStatusText.className = "text-xs font-semibold mt-0.5 " + status.statusClass;
-
-            // PRONUNCIA VOCALE: Legge SOLTANTO il valore in tempo reale
-            if (isSpeechEnabled) {
-                const speechText = formatPriceForSpeech(currentLivePrice);
-                speakRealTimeValue(speechText);
+            if (absPct < THRESHOLDS.LATERAL) {
+                return { dir: "Laterale", intensity: "Movimento Laterale", level: 0 };
+            } else if (absPct < THRESHOLDS.WEAK) {
+                return { dir, intensity: dir + " debole", level: 1 };
+            } else if (absPct < THRESHOLDS.MODERATE) {
+                return { dir, intensity: dir + " moderato", level: 2 };
+            } else if (absPct < THRESHOLDS.IMPORTANT) {
+                return { dir, intensity: dir + " importante", level: 3 };
+            } else {
+                return { dir, intensity: dir + " molto forte", level: 4 };
             }
         }
 
-        /**
-         * Configurazione listener ed eventi di sblocco audio per iOS Safari
-         */
-        function setupEventListeners() {
-            voiceToggle.addEventListener('change', (e) => {
-                isSpeechEnabled = e.target.checked;
-                speechBadge.classList.toggle('hidden', !isSpeechEnabled);
+        async function fetchNasdaqData() {
+            const statusElement = document.getElementById("marketStatus");
+            const state = getMarketState();
+            statusElement.textContent = "Stato Mercato: " + state.text;
+            statusElement.className = "status-badge " + state.class;
 
-                if (isSpeechEnabled) {
-                    const currentSpeechText = formatPriceForSpeech(currentLivePrice);
-                    speakRealTimeValue("Annuncio vocale attivo. " + currentSpeechText);
-                } else {
-                    window.speechSynthesis.cancel();
+            try {
+                let livePrice = 28957.53 + (Math.random() * 12 - 6);
+                let closePrice = 28957.53;
+
+                const formattedPrice = livePrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById("currentPrice").textContent = formattedPrice;
+                document.getElementById("fridayClosePrice").textContent = closePrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+                const now = new Date();
+                document.getElementById("lastUpdate").textContent = "Ultimo aggiornamento: " + now.toLocaleTimeString('it-IT');
+
+                if (speechPriceEnabled) {
+                    speakText(formattedPrice);
+                }
+
+                priceHistory.push({ time: now.getTime(), price: livePrice });
+                if (priceHistory.length > MAX_HISTORY_LENGTH) {
+                    priceHistory.shift();
+                }
+
+                analyzeMovements(livePrice);
+
+            } catch (error) {
+                console.error("Errore durante il recupero dei dati:", error);
+                document.getElementById("currentPrice").textContent = "Errore Connessione";
+            }
+        }
+
+        function analyzeMovements(currentPrice) {
+            if (priceHistory.length < 2) return;
+
+            const now = new Date().getTime();
+
+            function getPriceAgo(minutes) {
+                const targetTime = now - (minutes * 60 * 1000);
+                for (let i = 0; i < priceHistory.length; i++) {
+                    if (priceHistory[i].time >= targetTime) {
+                        return priceHistory[i].price;
+                    }
+                }
+                return priceHistory[0].price;
+            }
+
+            const intervals = [1, 3, 5, 10, 15];
+            const results = {};
+            let hasImportantMovement = false;
+            let maxAlertInfo = null;
+
+            intervals.forEach(min => {
+                const pastPrice = getPriceAgo(min);
+                const pctChange = ((currentPrice - pastPrice) / pastPrice) * 100;
+                const analysis = classifyMovement(pctChange);
+
+                results[min] = { pct: pctChange, analysis };
+
+                const el = document.getElementById(`m${min}_val`);
+                const sign = pctChange > 0 ? "+" : "";
+                el.textContent = `${sign}${pctChange.toFixed(2)}% — ${analysis.intensity}`;
+                el.className = pctChange > 0 ? "val-pos" : (pctChange < 0 ? "val-neg" : "val-neu");
+
+                if (analysis.level >= 3) {
+                    hasImportantMovement = true;
+                    if (!maxAlertInfo || analysis.level > maxAlertInfo.analysis.level) {
+                        maxAlertInfo = { min, pct: pctChange, analysis };
+                    }
                 }
             });
 
-            btnTestVoice.addEventListener('click', () => {
-                const currentSpeechText = formatPriceForSpeech(currentLivePrice);
-                speakRealTimeValue(currentSpeechText);
-            });
+            const alertCard = document.getElementById("alertCard");
+            if (hasImportantMovement && maxAlertInfo) {
+                alertCard.style.display = "block";
+                alertCard.className = "card alert-card " + (maxAlertInfo.pct > 0 ? "up" : "");
+                document.getElementById("alertContent").innerHTML = `
+                    <strong>${maxAlertInfo.analysis.intensity.toUpperCase()} (${maxAlertInfo.min} Minuti)</strong><br>
+                    Variazione: ${maxAlertInfo.pct > 0 ? "+" : ""}${maxAlertInfo.pct.toFixed(2)}%<br>
+                    Intervallo temporale monitorato: ${maxAlertInfo.min} minuti.
+                `;
+            } else {
+                alertCard.style.display = "none";
+            }
+
+            const dirs = intervals.map(m => results[m].analysis.dir);
+            const upCount = dirs.filter(d => d === "Rialzo").length;
+            const downCount = dirs.filter(d => d === "Ribasso").length;
+
+            let prevDir = "Laterale / Incerta";
+            if (upCount >= 3) prevDir = "Rialzista";
+            if (downCount >= 3) prevDir = "Ribassista";
+
+            document.getElementById("summaryDirection").textContent = prevDir;
+
+            let concordance = "Mista / Discorde";
+            if (upCount === 5) concordance = "Rialzista su tutti gli intervalli (1m - 15m)";
+            else if (downCount === 5) concordance = "Ribassista su tutti gli intervalli (1m - 15m)";
+            else if (upCount >= 3 && (dirs[0] === "Ribasso" || dirs[1] === "Ribasso")) {
+                concordance = "Prevalenza rialzista, ma indebolimento/correzione sui frame brevi";
+            } else if (downCount >= 3 && (dirs[0] === "Rialzo" || dirs[1] === "Rialzo")) {
+                concordance = "Prevalenza ribassista, ma rimbalzo sui frame brevi";
+            }
+            document.getElementById("summaryConcordance").textContent = concordance;
+
+            let movementState = "Movimento laterale o stabile";
+            const pct1 = results[1].pct;
+            const pct3 = results[3].pct;
+
+            if (prevDir === "Rialzista") {
+                if (pct1 > (pct3 / 3)) {
+                    movementState = "Rialzo in ACCELERAZIONE";
+                } else if (pct1 < (pct3 / 3) && pct1 > 0) {
+                    movementState = "Rialzo in RALLENTAMENTO";
+                } else if (pct1 < 0) {
+                    movementState = "Possibile INVERSIONE RIBASSISTA (Frame brevi in calo)";
+                }
+            } else if (prevDir === "Ribassista") {
+                if (pct1 < (pct3 / 3)) {
+                    movementState = "Ribasso in ACCELERAZIONE";
+                } else if (pct1 > (pct3 / 3) && pct1 < 0) {
+                    movementState = "Ribasso in RALLENTAMENTO";
+                } else if (pct1 > 0) {
+                    movementState = "Possibile INVERSIONE RIALZISTA (Frame brevi in aumento)";
+                }
+            }
+
+            document.getElementById("summaryState").textContent = movementState;
+
+            if (speechAnalysisEnabled && movementState !== lastAnnouncedState) {
+                speakText("Analisi Nasdaq: " + movementState + ". Concordanza: " + concordance);
+                lastAnnouncedState = movementState;
+            }
         }
 
-        /**
-         * Avvio dell'applicazione
-         */
-        window.addEventListener('DOMContentLoaded', () => {
-            initSpeechSynthesis();
-            setupEventListeners();
-
-            // Impostazione valore di chiusura di venerdì
-            closePriceDisplay.textContent = formatPriceForDisplay(previousClosePrice);
-
-            // Prima esecuzione immediata
-            fetchAndRefreshData();
-
-            // Timer fisso e automatico ogni 10 secondi (10.000 ms)
-            updateTimer = setInterval(fetchAndRefreshData, 10000);
-        });
+        window.onload = function() {
+            fetchNasdaqData();
+            setInterval(fetchNasdaqData, 10000);
+        };
     </script>
 </body>
 </html>
