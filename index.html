@@ -161,6 +161,11 @@
 </head>
 <body>
 
+    <!-- Elemento audio silenzioso per mantenere attivo il processo in background su iOS -->
+    <audio id="iosKeepAliveAudio" loop preload="auto">
+        <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" type="audio/wav">
+    </audio>
+
     <header>
         <h1>Nasdaq 100 - Live & Analisi</h1>
         <div id="marketStatus" class="status-badge status-closed" aria-live="polite">
@@ -229,10 +234,10 @@
         </section>
 
         <section class="card" aria-labelledby="hoursHeading">
-            <h2 id="hoursHeading">Orari di Contrattazione (Ora Italiana CET)</h2>
+            <h2 id="hoursHeading">Orari di Contrattazione Oggi (Ora Italiana CET)</h2>
             <ul style="padding-left: 20px; margin: 0;">
-                <li><strong>Pre-Market:</strong> 09:00 – 14:30 (Transizione)</li>
-                <li><strong>Mercato Regolare:</strong> 14:30 – 21:00 (Transizione)</li>
+                <li id="premarketHours"><strong>Pre-Market:</strong> In calcolo...</li>
+                <li id="regularHours"><strong>Mercato Regolare:</strong> In calcolo...</li>
             </ul>
         </section>
 
@@ -245,7 +250,7 @@
 
         let speechPriceEnabled = false;
         let speechAnalysisEnabled = false;
-        let lastAnnouncedState = "";
+        let cycleCounter60s = 0;
 
         const THRESHOLDS = {
             LATERAL: 0.03,
@@ -254,24 +259,34 @@
             IMPORTANT: 0.12
         };
 
+        function triggerKeepAliveAudio() {
+            const audioEl = document.getElementById('iosKeepAliveAudio');
+            if (audioEl && audioEl.paused) {
+                audioEl.play().catch(err => console.log("Attesa interazione utente per audio background"));
+            }
+        }
+
         function toggleAudio(type) {
+            triggerKeepAliveAudio();
+
             if (type === 'price') {
                 speechPriceEnabled = !speechPriceEnabled;
                 const btn = document.getElementById('btnAudioPrice');
                 btn.textContent = "🔊 Audio Prezzo: " + (speechPriceEnabled ? "ON" : "OFF");
                 btn.classList.toggle('active', speechPriceEnabled);
-                if (speechPriceEnabled) speakText("Audio prezzo attivato");
+                if (speechPriceEnabled) speakText("Audio prezzo ogni 10 secondi attivato");
             } else if (type === 'analysis') {
                 speechAnalysisEnabled = !speechAnalysisEnabled;
                 const btn = document.getElementById('btnAudioAnalysis');
                 btn.textContent = "📢 Audio Analisi: " + (speechAnalysisEnabled ? "ON" : "OFF");
                 btn.classList.toggle('active', speechAnalysisEnabled);
-                if (speechAnalysisEnabled) speakText("Audio analisi attivato");
+                if (speechAnalysisEnabled) speakText("Audio analisi ogni 60 secondi attivato");
             }
         }
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
+                triggerKeepAliveAudio();
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'it-IT';
@@ -280,24 +295,37 @@
             }
         }
 
-        function getMarketState() {
+        function getMarketScheduleForToday() {
             const now = new Date();
             const nyString = now.toLocaleString("en-US", { timeZone: "America/New_York" });
             const nyDate = new Date(nyString);
-            const day = nyDate.getDay();
+            const diffHours = Math.round((now.getTime() - nyDate.getTime()) / (1000 * 60 * 60));
+
+            let preStart = "10:00", preEnd = "15:30", regStart = "15:30", regEnd = "22:00";
+            if (diffHours === 5) {
+                preStart = "09:00"; preEnd = "14:30"; regStart = "14:30"; regEnd = "21:00";
+            }
+
+            document.getElementById("premarketHours").innerHTML = `<strong>Pre-Market:</strong> ${preStart} – ${preEnd}`;
+            document.getElementById("regularHours").innerHTML = `<strong>Mercato Regolare:</strong> ${regStart} – ${regEnd}`;
+
+            return { preStartMinutes: (diffHours === 5 ? 9 : 10) * 60, regStartMinutes: (diffHours === 5 ? 14*60+30 : 15*60+30), regEndMinutes: (diffHours === 5 ? 21 : 22) * 60 };
+        }
+
+        function getMarketState() {
+            const schedule = getMarketScheduleForToday();
+            const now = new Date();
+            const day = now.getDay();
 
             if (day === 0 || day === 6) {
                 return { text: "Mercato Chiuso (Weekend)", class: "status-closed" };
             }
 
-            const nyMinutes = nyDate.getHours() * 60 + nyDate.getMinutes();
-            const preMarketStart = 4 * 60;
-            const regularMarketStart = 9 * 60 + 30;
-            const regularMarketEnd = 16 * 60;
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-            if (nyMinutes >= preMarketStart && nyMinutes < regularMarketStart) {
+            if (currentMinutes >= schedule.preStartMinutes && currentMinutes < schedule.regStartMinutes) {
                 return { text: "Pre-Market Attivo", class: "status-premarket" };
-            } else if (nyMinutes >= regularMarketStart && nyMinutes < regularMarketEnd) {
+            } else if (currentMinutes >= schedule.regStartMinutes && currentMinutes < schedule.regEndMinutes) {
                 return { text: "Mercato Aperto (Live)", class: "status-open" };
             } else {
                 return { text: "Mercato Chiuso", class: "status-closed" };
@@ -322,6 +350,8 @@
         }
 
         async function fetchNasdaqData() {
+            triggerKeepAliveAudio();
+            
             const statusElement = document.getElementById("marketStatus");
             const state = getMarketState();
             statusElement.textContent = "Stato Mercato: " + state.text;
@@ -347,6 +377,7 @@
                     priceHistory.shift();
                 }
 
+                cycleCounter60s++;
                 analyzeMovements(livePrice);
 
             } catch (error) {
@@ -419,10 +450,10 @@
             document.getElementById("summaryDirection").textContent = prevDir;
 
             let concordance = "Mista / Discorde";
-            if (upCount === 5) concordance = "Rialzista su tutti gli intervalli (1m - 15m)";
-            else if (downCount === 5) concordance = "Ribassista su tutti gli intervalli (1m - 15m)";
+            if (upCount === 5) concordance = "Rialzista su tutti gli intervalli";
+            else if (downCount === 5) concordance = "Ribassista su tutti gli intervalli";
             else if (upCount >= 3 && (dirs[0] === "Ribasso" || dirs[1] === "Ribasso")) {
-                concordance = "Prevalenza rialzista, ma indebolimento/correzione sui frame brevi";
+                concordance = "Prevalenza rialzista, ma indebolimento sui frame brevi";
             } else if (downCount >= 3 && (dirs[0] === "Rialzo" || dirs[1] === "Rialzo")) {
                 concordance = "Prevalenza ribassista, ma rimbalzo sui frame brevi";
             }
@@ -438,7 +469,7 @@
                 } else if (pct1 < (pct3 / 3) && pct1 > 0) {
                     movementState = "Rialzo in RALLENTAMENTO";
                 } else if (pct1 < 0) {
-                    movementState = "Possibile INVERSIONE RIBASSISTA (Frame brevi in calo)";
+                    movementState = "Possibile INVERSIONE RIBASSISTA";
                 }
             } else if (prevDir === "Ribassista") {
                 if (pct1 < (pct3 / 3)) {
@@ -446,15 +477,15 @@
                 } else if (pct1 > (pct3 / 3) && pct1 < 0) {
                     movementState = "Ribasso in RALLENTAMENTO";
                 } else if (pct1 > 0) {
-                    movementState = "Possibile INVERSIONE RIALZISTA (Frame brevi in aumento)";
+                    movementState = "Possibile INVERSIONE RIALZISTA";
                 }
             }
 
             document.getElementById("summaryState").textContent = movementState;
 
-            if (speechAnalysisEnabled && movementState !== lastAnnouncedState) {
-                speakText("Analisi Nasdaq: " + movementState + ". Concordanza: " + concordance);
-                lastAnnouncedState = movementState;
+            if (speechAnalysisEnabled && (cycleCounter60s % 6 === 0)) {
+                const phrase = `Analisi Nasdaq: ${movementState}. Concordanza: ${concordance}. `;
+                speakText(phrase + phrase);
             }
         }
 
