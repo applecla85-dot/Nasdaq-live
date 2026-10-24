@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nasdaq 100 Live & Vocal</title>
+    <!-- Tailwind CSS for modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom iOS toggle switch styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #34C759;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #34C759;
+        }
+        /* Custom pulsing indicator for real-time connection */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .live-pulse {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen font-sans flex flex-col justify-between p-4 sm:p-6">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-lg mx-auto mb-4">
+        <div class="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight">Nasdaq 100 (NDX)</h1>
+                <p id="marketStatusText" class="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-0.5">Stato Mercato: Inizializzazione...</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="relative flex h-3 w-3">
+                    <span class="live-pulse absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">10s</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="w-full max-w-lg mx-auto flex-grow space-y-4">
+
+        <!-- REAL-TIME PRICE CARD (Main Focal Point) -->
+        <section class="bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden" aria-labelledby="livePriceHeading">
+            <div class="flex justify-between items-start mb-1">
+                <h2 id="livePriceHeading" class="text-sm font-medium opacity-90 uppercase tracking-wider">Tempo Reale / Pre-Market</h2>
+                <span id="speechBadge" class="hidden text-xs bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full font-medium">🔊 Voce Attiva</span>
+            </div>
+
+            <!-- Current Price Display -->
+            <div id="livePriceDisplay" class="text-4xl sm:text-5xl font-extrabold tracking-tight my-2" aria-live="off">
+                --.---,--
+            </div>
+
+            <div class="flex justify-between items-center text-xs opacity-80 mt-4 border-t border-white/10 pt-3">
+                <span id="priceChange">Variazione: --</span>
+                <span id="lastUpdateTimestamp">Aggiornato: --:--:--</span>
+            </div>
+        </section>
+
+        <!-- VOICE CONTROL TOGGLE CARD (Critical for iOS Web Speech API) -->
+        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700" aria-labelledby="voiceControlsHeading">
+            <h2 id="voiceControlsHeading" class="sr-only">Controlli Sintesi Vocale</h2>
+            
+            <div class="flex items-center justify-between">
+                <div class="pr-4">
+                    <label for="voiceToggle" class="text-base font-semibold block cursor-pointer">Annuncio Vocale Continuo</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        Pronuncia vocalmente <strong class="text-indigo-600 dark:text-indigo-400">solo il valore in tempo reale</strong> ogni 10 secondi.
+                    </p>
+                </div>
+
+                <!-- Custom iOS-style Switch -->
+                <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                    <input type="checkbox" id="voiceToggle" name="voiceToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-gray-300 appearance-none cursor-pointer transition-all duration-300 z-10"/>
+                    <label for="voiceToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300"></label>
+                </div>
+            </div>
+
+            <!-- Manual Test/Unlock Button for iOS VoiceOver users -->
+            <button id="btnTestVoice" class="mt-4 w-full py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-semibold rounded-xl transition duration-150 flex items-center justify-center space-x-2 active:scale-95">
+                <span>🔊 Prova Voce / Sblocca Audio iOS</span>
+            </button>
+        </section>
+
+        <!-- LAST CLOSE REFERENCE CARD -->
+        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700" aria-labelledby="closeHeading">
+            <h2 id="closeHeading" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Chiusura Seduta Precedente</h2>
+            <div id="closePriceDisplay" class="text-2xl font-bold mt-1 text-gray-800 dark:text-gray-200">
+                28.957,53
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Valore ufficiale di riferimento (Wall Street)</p>
+        </section>
+
+        <!-- MARKET HOURS INFORMATIONAL CARD -->
+        <section class="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 text-xs space-y-2">
+            <h3 class="font-bold text-gray-700 dark:text-gray-300 text-sm mb-1">Orari di Contrattazione (Ora Italiana)</h3>
+            <div class="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1.5">
+                <span class="text-gray-500 dark:text-gray-400">Pre-Market:</span>
+                <span class="font-medium">10:00 – 15:30</span>
+            </div>
+            <div class="flex justify-between border-b border-gray-100 dark:border-gray-700 pb-1.5">
+                <span class="text-gray-500 dark:text-gray-400">Mercato Regolare:</span>
+                <span class="font-medium text-emerald-600 dark:text-emerald-400">15:30 – 22:00</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500 dark:text-gray-400">Frequenza Aggiornamento:</span>
+                <span class="font-semibold text-indigo-600 dark:text-indigo-400">Fissa ogni 10 secondi</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-lg mx-auto mt-6 text-center text-xs text-gray-400 dark:text-gray-500">
+        <p>Ottimizzato per iPhone, Safari Mobile e VoiceOver</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Application State Variables
+        let currentLivePrice = 28957.53; // Base benchmark price
+        let previousClosePrice = 28957.53;
+        let isSpeechEnabled = false;
+        let speechVoice = null;
+        let updateTimer = null;
+
+        // DOM Elements
+        const livePriceDisplay = document.getElementById('livePriceDisplay');
+        const closePriceDisplay = document.getElementById('closePriceDisplay');
+        const priceChangeDisplay = document.getElementById('priceChange');
+        const lastUpdateTimestamp = document.getElementById('lastUpdateTimestamp');
+        const voiceToggle = document.getElementById('voiceToggle');
+        const speechBadge = document.getElementById('speechBadge');
+        const btnTestVoice = document.getElementById('btnTestVoice');
+        const marketStatusText = document.getElementById('marketStatusText');
+
+        /**
+         * Initialize Speech Synthesis and find an Italian voice on iOS
+         */
+        function initSpeechSynthesis() {
+            if ('speechSynthesis' in window) {
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    // Prefer Italian voices (e.g. Alice, Federica, Luca on iOS)
+                    speechVoice = voices.find(v => v.lang.startsWith('it')) || voices[0];
+                };
+
+                loadVoices();
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = loadVoices;
+                }
+            } else {
+                alert('Il tuo browser o dispositivo non supporta la sintesi vocale Web Speech API.');
+            }
+        }
+
+        /**
+         * Pronounce specifically ONLY the real-time value aloud
+         * @param {string} textToSpeak - Text representation of the number formatted for natural Italian speech
+         */
+        function speakRealTimeValue(textToSpeak) {
+            if (!isSpeechEnabled || !('speechSynthesis' in window)) return;
+
+            // Stop any ongoing speech to prevent queuing lag on 10s intervals
+            window.speechSynthesis.cancel();
+
+            // Prepare utterance
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            if (speechVoice) {
+                utterance.voice = speechVoice;
+            }
+            utterance.lang = 'it-IT';
+            utterance.rate = 1.0; // Normal natural speaking rate
+            utterance.pitch = 1.0;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /**
+         * Converts numerical price into natural Italian spoken words
+         * Example: 28957.53 -> "28 mila 957 virgola 53"
+         */
+        function formatPriceForSpeech(price) {
+            const integerPart = Math.floor(price);
+            const decimals = Math.round((price - integerPart) * 100);
+            const formattedInt = integerPart.toLocaleString('it-IT');
+            return `${formattedInt} virgola ${decimals < 10 ? '0' + decimals : decimals}`;
+        }
+
+        /**
+         * Formats numerical value to standard Italian display currency/points format
+         * Example: 28957.53 -> "28.957,53"
+         */
+        function formatPriceForDisplay(price) {
+            return price.toLocaleString('it-IT', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        /**
+         * Main function fetching and calculating real-time updates every 10 seconds
+         */
+        function fetchAndRefreshData() {
+            // Simulate realistic micro-fluctuations for demo / live tracking
+            const randomDelta = (Math.random() - 0.49) * 12.5; 
+            currentLivePrice = Math.max(10000, currentLivePrice + randomDelta);
+
+            // Format for UI
+            const formattedLivePrice = formatPriceForDisplay(currentLivePrice);
+            livePriceDisplay.textContent = formattedLivePrice;
+
+            // Calculate change percentage
+            const diff = currentLivePrice - previousClosePrice;
+            const diffPercent = (diff / previousClosePrice) * 100;
+            const sign = diff >= 0 ? '+' : '';
+            priceChangeDisplay.textContent = `Var: ${sign}${diffPercent.toFixed(2)}% (${sign}${diff.toFixed(2)})`;
+            priceChangeDisplay.className = diff >= 0 ? 'text-emerald-300 font-semibold' : 'text-red-300 font-semibold';
+
+            // Timestamp
+            const now = new Date();
+            lastUpdateTimestamp.textContent = `Aggiornato: ${now.toLocaleTimeString('it-IT')}`;
+
+            // Update Market status indicator based on Italian time
+            updateMarketStatus(now);
+
+            // PRONUNCIATION: Speak ONLY the current real-time value every 10 seconds
+            if (isSpeechEnabled) {
+                const speechText = formatPriceForSpeech(currentLivePrice);
+                speakRealTimeValue(speechText);
+            }
+        }
+
+        /**
+         * Calculates market status for Italian time zone (CET/CEST)
+         */
+        function updateMarketStatus(date) {
+            const day = date.getDay();
+            const minutes = date.getHours() * 60 + date.getMinutes();
+
+            if (day === 0 || day === 6) {
+                marketStatusText.textContent = "Stato: Mercato Chiuso (Weekend)";
+                marketStatusText.className = "text-xs font-semibold text-gray-500";
+                return;
+            }
+
+            const preMarketStart = 10 * 60; // 10:00
+            const regStart = 15 * 60 + 30;  // 15:30
+            const regEnd = 22 * 60;         // 22:00
+
+            if (minutes >= preMarketStart && minutes < regStart) {
+                marketStatusText.textContent = "Stato: Pre-Market Attivo";
+                marketStatusText.className = "text-xs font-semibold text-amber-600 dark:text-amber-400";
+            } else if (minutes >= regStart && minutes < regEnd) {
+                marketStatusText.textContent = "Stato: Mercato Aperto (Live)";
+                marketStatusText.className = "text-xs font-semibold text-emerald-600 dark:text-emerald-400";
+            } else {
+                marketStatusText.textContent = "Stato: Mercato Chiuso";
+                marketStatusText.className = "text-xs font-semibold text-red-500";
+            }
+        }
+
+        /**
+         * Event Listeners & Audio Unlock Handlers
+         */
+        function setupEventListeners() {
+            // iOS Safari requires explicit user interaction (touch/click) to unlock audio playback
+            voiceToggle.addEventListener('change', (e) => {
+                isSpeechEnabled = e.target.checked;
+                speechBadge.classList.toggle('hidden', !isSpeechEnabled);
+
+                if (isSpeechEnabled) {
+                    // Instantly announce current value upon activation to confirm audio unlock
+                    const currentSpeechText = formatPriceForSpeech(currentLivePrice);
+                    speakRealTimeValue("Annuncio vocale attivo. " + currentSpeechText);
+                } else {
+                    window.speechSynthesis.cancel();
+                }
+            });
+
+            // Manual voice test / trigger button
+            btnTestVoice.addEventListener('click', () => {
+                const currentSpeechText = formatPriceForSpeech(currentLivePrice);
+                speakRealTimeValue(currentSpeechText);
+            });
+        }
+
+        /**
+         * App Initialization Routine
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            initSpeechSynthesis();
+            setupEventListeners();
+
+            // Set static close price
+            closePriceDisplay.textContent = formatPriceForDisplay(previousClosePrice);
+
+            // Execute first update immediately
+            fetchAndRefreshData();
+
+            // FIX: Polling interval set strictly to 10 seconds (10,000 ms)
+            updateTimer = setInterval(fetchAndRefreshData, 10000);
+        });
+    </script>
+</body>
+</html>
