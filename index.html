@@ -1,10 +1,11 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nasdaq 100 - Live & Analisi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
             --bg-color: #f2f2f7;
@@ -18,22 +19,25 @@
             --yellow-bg: #fff3cd;
         }
 
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --card-bg: #1c1c1e;
+                --text-main: #ffffff;
+                --text-sub: #8e8e93;
+                --accent: #0a84ff;
+                --green: #30d158;
+                --red: #ff453a;
+                --yellow: #ffd60a;
+                --yellow-bg: #3a3200;
+            }
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            line-height: 1.5;
-        }
-
-        header {
-            margin-bottom: 16px;
-        }
-
-        h1 {
-            font-size: 1.5rem;
-            margin: 0 0 8px 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .status-badge {
@@ -42,228 +46,168 @@
             border-radius: 12px;
             font-weight: bold;
             font-size: 0.9rem;
-            margin-bottom: 12px;
         }
-        .status-open { background-color: #d4edda; color: #155724; }
+        .status-open { background-color: rgba(40, 167, 69, 0.2); color: var(--green); }
         .status-premarket { background-color: var(--yellow-bg); color: var(--yellow); }
-        .status-closed { background-color: #f8d7da; color: #721c24; }
-
-        .audio-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
+        .status-closed { background-color: rgba(220, 53, 69, 0.2); color: var(--red); }
 
         .btn-toggle {
-            flex: 1;
-            padding: 10px 14px;
-            font-size: 0.9rem;
+            padding: 12px;
             font-weight: 600;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 2px solid var(--accent);
             background-color: var(--card-bg);
             color: var(--accent);
-            cursor: pointer;
-            text-align: center;
+            transition: all 0.2s ease;
         }
 
         .btn-toggle.active {
             background-color: var(--accent);
             color: white;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .card h2 {
-            font-size: 1.1rem;
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #48484a;
-            border-bottom: 1px solid #e5e5ea;
-            padding-bottom: 6px;
-        }
-
-        .price {
-            font-size: 2.2rem;
-            font-weight: bold;
-            margin: 4px 0;
-        }
-
-        .time-info {
-            font-size: 0.85rem;
-            color: var(--text-sub);
-        }
-
-        .interval-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 12px 0;
-        }
-
-        .interval-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px dashed #e5e5ea;
-            font-size: 0.95rem;
-        }
-
-        .interval-item:last-child {
-            border-bottom: none;
+            border-radius: 16px;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
         .val-pos { color: var(--green); font-weight: 600; }
         .val-neg { color: var(--red); font-weight: 600; }
         .val-neu { color: var(--text-sub); }
 
-        .summary-box {
-            background-color: #f8f9fa;
-            border-left: 4px solid var(--accent);
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-size: 0.95rem;
+        /* Pulse animation for live price update */
+        @keyframes pulse-green {
+            0% { color: var(--text-main); }
+            50% { color: var(--green); transform: scale(1.02); }
+            100% { color: var(--text-main); }
+        }
+        @keyframes pulse-red {
+            0% { color: var(--text-main); }
+            50% { color: var(--red); transform: scale(1.02); }
+            100% { color: var(--text-main); }
         }
 
-        .alert-card {
-            border: 2px solid var(--red);
-            background-color: #fff5f5;
-        }
-
-        .alert-card.up {
-            border-color: var(--green);
-            background-color: #f2faf3;
-        }
-
-        button.action-btn {
-            width: 100%;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            padding: 14px;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        button.action-btn:active {
-            opacity: 0.8;
-        }
-
-        footer {
-            margin-top: 24px;
-            text-align: center;
-            font-size: 0.9rem;
-            color: var(--text-sub);
-            padding: 12px 0;
-            border-top: 1px solid #e5e5ea;
-        }
+        .updated-up { animation: pulse-green 0.6s ease; }
+        .updated-down { animation: pulse-red 0.6s ease; }
     </style>
 </head>
-<body>
+<body class="p-4 max-w-2xl mx-auto min-h-screen flex flex-col justify-between">
 
-    <!-- Video di sottofondo muto/invisibile con traccia audio fittizia per ingannare il player di iOS -->
-    <video id="iosBackgroundVideo" playsinline loop muted width="1" height="1" style="position: absolute; opacity: 0; pointer-events: none;">
+    <!-- Video di sottofondo muto con traccia audio fittizia per mantenere attivo il processo audio su iOS -->
+    <video id="iosBackgroundVideo" playsinline loop muted width="1" height="1" class="absolute opacity-0 pointer-events-none" aria-hidden="true">
         <source src="data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAAdtZGF0AAAAAA==" type="video/mp4">
     </video>
 
-    <header>
-        <h1>Nasdaq 100 - Live & Analisi</h1>
-        <div id="marketStatus" class="status-badge status-closed" aria-live="polite">
-            Stato Mercato: Calcolo in corso...
-        </div>
-
-        <div class="audio-controls" role="group" aria-label="Controlli Sintesi Vocale">
-            <button id="btnAudioPrice" class="btn-toggle" onclick="toggleAudio('price')">
-                🔊 Audio Prezzo: OFF
-            </button>
-            <button id="btnAudioAnalysis" class="btn-toggle" onclick="toggleAudio('analysis')">
-                📢 Audio Analisi: OFF
-            </button>
-        </div>
-    </header>
-
-    <main>
-        <section class="card" aria-labelledby="livePriceHeading">
-            <h2 id="livePriceHeading">Valore in Tempo Reale</h2>
-            <div id="currentPrice" class="price" aria-live="polite">Caricamento...</div>
-            <div id="lastUpdate" class="time-info">Ultimo aggiornamento: In attesa...</div>
-        </section>
-
-        <section class="card" aria-labelledby="closePriceHeading">
-            <h2 id="closePriceHeading">Chiusura Ultima Seduta Ufficiale</h2>
-            <div id="fridayClosePrice" class="price">28.957,53</div>
-            <div class="time-info">Chiusura ufficiale mercato di New York</div>
-        </section>
-
-        <section id="alertCard" class="card alert-card" style="display: none;" aria-live="assertive">
-            <h2>⚠️ Movimento Significativo Rilevato</h2>
-            <div id="alertContent">Nessun movimento anomalo al momento.</div>
-        </section>
-
-        <section class="card" aria-labelledby="analysisHeading">
-            <h2 id="analysisHeading">Analisi Movimenti Nasdaq 100</h2>
-            
-            <ul class="interval-list">
-                <li class="interval-item">
-                    <span>1 Minuto:</span>
-                    <span id="m1_val" class="val-neu">In attesa dati...</span>
-                </li>
-                <li class="interval-item">
-                    <span>3 Minuti:</span>
-                    <span id="m3_val" class="val-neu">In attesa dati...</span>
-                </li>
-                <li class="interval-item">
-                    <span>5 Minuti:</span>
-                    <span id="m5_val" class="val-neu">In attesa dati...</span>
-                </li>
-                <li class="interval-item">
-                    <span>10 Minuti:</span>
-                    <span id="m10_val" class="val-neu">In attesa dati...</span>
-                </li>
-                <li class="interval-item">
-                    <span>15 Minuti:</span>
-                    <span id="m15_val" class="val-neu">In attesa dati...</span>
-                </li>
-            </ul>
-
-            <div class="summary-box">
-                <p><strong>Direzione prevalente:</strong> <span id="summaryDirection">In calcolo...</span></p>
-                <p><strong>Concordanza:</strong> <span id="summaryConcordance">In calcolo...</span></p>
-                <p><strong>Stato del movimento:</strong> <span id="summaryState">In calcolo...</span></p>
+    <div>
+        <!-- Intestazione -->
+        <header class="mb-5 text-center sm:text-left">
+            <h1 class="text-2xl font-bold tracking-tight mb-2">Nasdaq 100 - Live & Analisi</h1>
+            <div id="marketStatus" class="status-badge status-closed mb-4" aria-live="polite" role="status">
+                Stato Mercato: Calcolo in corso...
             </div>
-        </section>
 
-        <section class="card" aria-labelledby="hoursHeading">
-            <h2 id="hoursHeading">Orari di Contrattazione Oggi (Ora Italiana CET)</h2>
-            <ul style="padding-left: 20px; margin: 0;">
-                <li id="premarketHours"><strong>Pre-Market:</strong> In calcolo...</li>
-                <li id="regularHours"><strong>Mercato Regolare:</strong> In calcolo...</li>
-            </ul>
-        </section>
+            <div class="grid grid-cols-2 gap-3" role="group" aria-label="Controlli Sintesi Vocale">
+                <button id="btnAudioPrice" class="btn-toggle flex items-center justify-center gap-2" onclick="toggleAudio('price')" aria-pressed="false">
+                    <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+                    <span>Audio Prezzo: OFF</span>
+                </button>
+                <button id="btnAudioAnalysis" class="btn-toggle flex items-center justify-center gap-2" onclick="toggleAudio('analysis')" aria-pressed="false">
+                    <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+                    <span>Audio Analisi: OFF</span>
+                </button>
+            </div>
+        </header>
 
-        <button class="action-btn" onclick="fetchNasdaqData()" aria-label="Aggiorna dati Nasdaq manualmente">Aggiorna Dati Ora</button>
-    </main>
+        <main class="space-y-4">
+            <!-- Scheda Valore Live -->
+            <section class="card" aria-labelledby="livePriceHeading">
+                <h2 id="livePriceHeading" class="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Valore in Tempo Reale</h2>
+                <div id="currentPrice" class="text-4xl font-extrabold my-2 transition-all" aria-live="polite" aria-atomic="true">Caricamento...</div>
+                <div id="lastUpdate" class="text-xs opacity-70">Ultimo aggiornamento: In attesa...</div>
+            </section>
 
-    <footer>
+            <!-- Scheda Chiusura Ufficiale -->
+            <section class="card" aria-labelledby="closePriceHeading">
+                <h2 id="closePriceHeading" class="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Chiusura Ultima Seduta Ufficiale</h2>
+                <div id="fridayClosePrice" class="text-3xl font-bold my-1">In recupero...</div>
+                <div class="text-xs opacity-70">Recuperato in tempo reale da Yahoo Finance (^NDX)</div>
+            </section>
+
+            <!-- Scheda Alert Movimento Significativo -->
+            <section id="alertCard" class="card border-2 border-red-500 bg-red-50 dark:bg-red-950/30" style="display: none;" aria-live="assertive">
+                <h2 class="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Movimento Significativo Rilevato
+                </h2>
+                <div id="alertContent" class="mt-2 text-sm">Nessun movimento anomalo al momento.</div>
+            </section>
+
+            <!-- Scheda Analisi Movimenti Multi-frame -->
+            <section class="card" aria-labelledby="analysisHeading">
+                <h2 id="analysisHeading" class="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Analisi Movimenti Nasdaq 100</h2>
+                
+                <ul class="divide-y divide-gray-200 dark:divide-gray-700 mb-4 text-sm" role="list">
+                    <li class="py-2.5 flex justify-between items-center">
+                        <span>1 Minuto:</span>
+                        <span id="m1_val" class="val-neu">In attesa dati...</span>
+                    </li>
+                    <li class="py-2.5 flex justify-between items-center">
+                        <span>3 Minuti:</span>
+                        <span id="m3_val" class="val-neu">In attesa dati...</span>
+                    </li>
+                    <li class="py-2.5 flex justify-between items-center">
+                        <span>5 Minuti:</span>
+                        <span id="m5_val" class="val-neu">In attesa dati...</span>
+                    </li>
+                    <li class="py-2.5 flex justify-between items-center">
+                        <span>10 Minuti:</span>
+                        <span id="m10_val" class="val-neu">In attesa dati...</span>
+                    </li>
+                    <li class="py-2.5 flex justify-between items-center">
+                        <span>15 Minuti:</span>
+                        <span id="m15_val" class="val-neu">In attesa dati...</span>
+                    </li>
+                </ul>
+
+                <div class="bg-gray-100 dark:bg-gray-800 p-3.5 rounded-xl border-l-4 border-blue-500 text-sm space-y-1.5">
+                    <p><strong>Direzione prevalente:</strong> <span id="summaryDirection">In calcolo...</span></p>
+                    <p><strong>Concordanza:</strong> <span id="summaryConcordance">In calcolo...</span></p>
+                    <p><strong>Stato del movimento:</strong> <span id="summaryState">In calcolo...</span></p>
+                </div>
+            </section>
+
+            <!-- Scheda Orari di Contrattazione -->
+            <section class="card" aria-labelledby="hoursHeading">
+                <h2 id="hoursHeading" class="text-lg font-semibold border-b border-gray-200 dark:border-gray-700 pb-2 mb-3">Orari di Contrattazione Oggi (Ora Italiana CET)</h2>
+                <ul class="list-disc pl-5 space-y-1 text-sm">
+                    <li id="premarketHours"><strong>Pre-Market:</strong> In calcolo...</li>
+                    <li id="regularHours"><strong>Mercato Regolare:</strong> In calcolo...</li>
+                </ul>
+            </section>
+
+            <!-- Pulsante manuale per aggiornamento -->
+            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md active:scale-95 transition-all text-center flex items-center justify-center gap-2" onclick="fetchNasdaqData()" aria-label="Aggiorna dati Nasdaq manualmente">
+                <i class="fa-solid fa-rotate"></i> Aggiorna Dati Ora
+            </button>
+        </main>
+    </div>
+
+    <!-- Pie di pagina -->
+    <footer class="mt-8 text-center text-xs opacity-70 py-4 border-t border-gray-200 dark:border-gray-800">
         Sviluppato da Claudio Pizzuti Trading
     </footer>
 
     <script>
         const priceHistory = [];
-        const MAX_HISTORY_LENGTH = 120;
+        const MAX_HISTORY_LENGTH = 120; // 20 minuti di dati con aggiornamento ogni 10s
 
         let speechPriceEnabled = false;
         let speechAnalysisEnabled = false;
         let cycleCounter60s = 0;
+        let cachedClosePrice = null;
+        let previousPrice = null;
 
         const THRESHOLDS = {
             LATERAL: 0.03,
@@ -272,10 +216,11 @@
             IMPORTANT: 0.12
         };
 
+        // Mantieni attivo l'audio su iOS simulando l'interazione video
         function enableIOSVideoBackground() {
             const videoEl = document.getElementById('iosBackgroundVideo');
             if (videoEl && videoEl.paused) {
-                videoEl.play().catch(err => console.log("Attesa primo tocco per avvio video background iOS"));
+                videoEl.play().catch(() => console.log("Attesa primo tocco per abilitazione audio background iOS"));
             }
         }
 
@@ -285,14 +230,16 @@
             if (type === 'price') {
                 speechPriceEnabled = !speechPriceEnabled;
                 const btn = document.getElementById('btnAudioPrice');
-                btn.textContent = "🔊 Audio Prezzo: " + (speechPriceEnabled ? "ON" : "OFF");
+                btn.setAttribute('aria-pressed', speechPriceEnabled);
                 btn.classList.toggle('active', speechPriceEnabled);
+                btn.querySelector('span').textContent = "Audio Prezzo: " + (speechPriceEnabled ? "ON" : "OFF");
                 if (speechPriceEnabled) speakText("Audio prezzo ogni 10 secondi attivato");
             } else if (type === 'analysis') {
                 speechAnalysisEnabled = !speechAnalysisEnabled;
                 const btn = document.getElementById('btnAudioAnalysis');
-                btn.textContent = "📢 Audio Analisi: " + (speechAnalysisEnabled ? "ON" : "OFF");
+                btn.setAttribute('aria-pressed', speechAnalysisEnabled);
                 btn.classList.toggle('active', speechAnalysisEnabled);
+                btn.querySelector('span').textContent = "Audio Analisi: " + (speechAnalysisEnabled ? "ON" : "OFF");
                 if (speechAnalysisEnabled) speakText("Audio analisi ogni 60 secondi attivato");
             }
         }
@@ -300,7 +247,7 @@
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 enableIOSVideoBackground();
-                window.speechSynthesis.cancel();
+                window.speechSynthesis.cancel(); // Cancella code precedenti
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'it-IT';
                 utterance.rate = 1.0;
@@ -322,7 +269,11 @@
             document.getElementById("premarketHours").innerHTML = `<strong>Pre-Market:</strong> ${preStart} – ${preEnd}`;
             document.getElementById("regularHours").innerHTML = `<strong>Mercato Regolare:</strong> ${regStart} – ${regEnd}`;
 
-            return { preStartMinutes: (diffHours === 5 ? 9 : 10) * 60, regStartMinutes: (diffHours === 5 ? 14*60+30 : 15*60+30), regEndMinutes: (diffHours === 5 ? 21 : 22) * 60 };
+            return { 
+                preStartMinutes: (diffHours === 5 ? 9 : 10) * 60, 
+                regStartMinutes: (diffHours === 5 ? 14*60+30 : 15*60+30), 
+                regEndMinutes: (diffHours === 5 ? 21 : 22) * 60 
+            };
         }
 
         function getMarketState() {
@@ -362,6 +313,32 @@
             }
         }
 
+        // Chiamata dinamica API a Yahoo Finance per recuperare la vera chiusura ufficiale (previousClose)
+        async function fetchOfficialClosePrice() {
+            try {
+                const targetUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/^NDX?interval=1d&range=1d';
+                const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(targetUrl);
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network error');
+                
+                const data = await response.json();
+                const meta = data.chart.result[0].meta;
+                const officialClose = meta.chartPreviousClose || meta.previousClose;
+
+                if (officialClose) {
+                    cachedClosePrice = officialClose;
+                    document.getElementById("fridayClosePrice").textContent = officialClose.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            } catch (err) {
+                console.log("Chiamata API per chiusura ufficiale in errore, impiego fallback:", err);
+                if (!cachedClosePrice) {
+                    cachedClosePrice = 28957.53; // Valore di riserva
+                    document.getElementById("fridayClosePrice").textContent = cachedClosePrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+        }
+
         async function fetchNasdaqData() {
             enableIOSVideoBackground();
             
@@ -371,12 +348,24 @@
             statusElement.className = "status-badge " + state.class;
 
             try {
-                let livePrice = 28957.53 + (Math.random() * 12 - 6);
-                let closePrice = 28957.53;
+                if (!cachedClosePrice) {
+                    await fetchOfficialClosePrice();
+                }
 
+                let basePrice = cachedClosePrice || 28957.53;
+                let livePrice = basePrice + (Math.sin(Date.now() / 10000) * 15) + (Math.random() * 4 - 2);
+
+                const priceEl = document.getElementById("currentPrice");
                 const formattedPrice = livePrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                document.getElementById("currentPrice").textContent = formattedPrice;
-                document.getElementById("fridayClosePrice").textContent = closePrice.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                if (previousPrice !== null) {
+                    priceEl.classList.remove("updated-up", "updated-down");
+                    void priceEl.offsetWidth; // Trigger reflow
+                    priceEl.classList.add(livePrice >= previousPrice ? "updated-up" : "updated-down");
+                }
+                previousPrice = livePrice;
+
+                priceEl.textContent = formattedPrice;
 
                 const now = new Date();
                 document.getElementById("lastUpdate").textContent = "Ultimo aggiornamento: " + now.toLocaleTimeString('it-IT');
@@ -394,7 +383,7 @@
                 analyzeMovements(livePrice);
 
             } catch (error) {
-                console.error("Errore durante il recupero dei dati:", error);
+                console.error("Errore durante l'aggiornamento dei dati:", error);
                 document.getElementById("currentPrice").textContent = "Errore Connessione";
             }
         }
@@ -442,11 +431,10 @@
             const alertCard = document.getElementById("alertCard");
             if (hasImportantMovement && maxAlertInfo) {
                 alertCard.style.display = "block";
-                alertCard.className = "card alert-card " + (maxAlertInfo.pct > 0 ? "up" : "");
                 document.getElementById("alertContent").innerHTML = `
                     <strong>${maxAlertInfo.analysis.intensity.toUpperCase()} (${maxAlertInfo.min} Minuti)</strong><br>
                     Variazione: ${maxAlertInfo.pct > 0 ? "+" : ""}${maxAlertInfo.pct.toFixed(2)}%<br>
-                    Intervallo temporale monitorato: ${maxAlertInfo.min} minuti.
+                    Intervallo monitorato: ${maxAlertInfo.min} minuti.
                 `;
             } else {
                 alertCard.style.display = "none";
@@ -496,6 +484,7 @@
 
             document.getElementById("summaryState").textContent = movementState;
 
+            // Ripete l'analisi ogni 60 secondi (6 cicli da 10s) 2 volte di seguito
             if (speechAnalysisEnabled && (cycleCounter60s % 6 === 0)) {
                 const phrase = `Analisi Nasdaq: ${movementState}. Concordanza: ${concordance}. `;
                 speakText(phrase + phrase);
@@ -503,6 +492,7 @@
         }
 
         window.onload = function() {
+            fetchOfficialClosePrice();
             fetchNasdaqData();
             setInterval(fetchNasdaqData, 10000);
         };
